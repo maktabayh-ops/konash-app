@@ -687,12 +687,7 @@ const firebaseConfig = {
   appId: "1:25339799826:web:411229209c10053b61ebcb"
 };
 firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
 const database = firebase.database();
-
-// ======= INDEXEDDB (Dexie) =======
-const db = new Dexie("MaktabayhDB");
-db.version(1).stores({ clients: "id, name, phone, note, joinDate, operations" });
 
 // ======= STATE =======
 let currentUser = null;
@@ -711,27 +706,32 @@ let syncInProgress = false;
 
 // ======= THEME =======
 let isDarkMode = localStorage.getItem('darkMode') === 'true';
+
 function applyTheme() {
   if (isDarkMode) document.body.classList.add('dark');
   else document.body.classList.remove('dark');
+
   const lbl = document.getElementById('themeLabel');
   const ico = document.getElementById('themeIcon');
   const btn = document.getElementById('themeBtn');
+
   if (lbl) lbl.textContent = isDarkMode ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الداكن';
   if (ico) ico.textContent = isDarkMode ? '☀️' : '🌙';
   if (btn) btn.textContent = isDarkMode ? '☀️' : '🌙';
 }
+
 function toggleTheme() {
   isDarkMode = !isDarkMode;
   localStorage.setItem('darkMode', isDarkMode);
   applyTheme();
-  showToast(isDarkMode ? '🌙 الوضع الداكن' : '☀️ الوضع الفاتح');
+  showToast(isDarkMode ? '🌙 تم تفعيل الوضع الداكن' : '☀️ تم تفعيل الوضع الفاتح');
 }
 applyTheme();
 
 // ======= SPLASH SCREEN =======
 setTimeout(() => {
   const splash = document.getElementById('splashScreen');
+  if (!splash) return;
   splash.classList.add('hide');
   setTimeout(() => splash.style.display = 'none', 500);
 }, 1500);
@@ -740,37 +740,61 @@ setTimeout(() => {
 function updateSyncStatus() {
   const s = document.getElementById('syncStatus');
   if (!s) return;
-  if (syncInProgress) { s.className = 'sync-status syncing'; s.innerHTML = '🟣 جاري المزامنة...'; }
-  else if (isOnline) { s.className = 'sync-status online'; s.innerHTML = '🟢 متزامن'; }
-  else { s.className = 'sync-status offline'; s.innerHTML = '🔴 غير متصل (محلي)'; }
+  if (syncInProgress) {
+    s.className = 'sync-status syncing';
+    s.innerHTML = '🟣 جاري المزامنة...';
+  } else if (isOnline) {
+    s.className = 'sync-status online';
+    s.innerHTML = '🟢 متزامن';
+  } else {
+    s.className = 'sync-status offline';
+    s.innerHTML = '🟠 بدون اتصال';
+  }
 }
+
 function updateOfflineIndicator() {
   const indicator = document.getElementById('offlineIndicator');
+  if (!indicator) return;
   if (!isOnline) indicator.classList.add('show');
   else indicator.classList.remove('show');
-  updateSyncStatus();
 }
-window.addEventListener('online', () => { isOnline = true; updateOfflineIndicator(); showToast('✅ تم استعادة الاتصال - جاري المزامنة...');   });
-window.addEventListener('offline', () => { isOnline = false; updateOfflineIndicator(); showToast('⚠️ وضع عدم الاتصال - البيانات محفوظة محلياً'); });
 updateOfflineIndicator();
+updateSyncStatus();
 
-async async async 
+window.addEventListener('online', () => {
+  isOnline = true;
+  updateOfflineIndicator();
+  updateSyncStatus();
+  showToast('✅ تم استعادة الاتصال بالإنترنت');
+});
+
+window.addEventListener('offline', () => {
+  isOnline = false;
+  updateOfflineIndicator();
+  updateSyncStatus();
+  showToast('⚠️ لا يوجد اتصال بالإنترنت');
+});
+
 // ======= LOGIN =======
 let loginAttempts = 0;
+let isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+
 function onPwInput() {
   const val = document.getElementById('pwInput').value;
   for (let i = 0; i < 4; i++) {
     const dot = document.getElementById('dot' + i);
-    dot.classList.toggle('filled', i < val.length);
+    if (dot) dot.classList.toggle('filled', i < val.length);
   }
   document.getElementById('loginError').textContent = '';
   document.getElementById('pwInput').classList.remove('error');
 }
+
 function togglePwShow() {
   const inp = document.getElementById('pwInput');
+  if (!inp) return;
   inp.type = inp.type === 'password' ? 'text' : 'password';
 }
-let isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+
 function completeLogin() {
   isLoggedIn = true;
   localStorage.setItem('isLoggedIn', 'true');
@@ -779,18 +803,25 @@ function completeLogin() {
   initializeApp();
   loginAttempts = 0;
 }
+
 function doLogin() {
   const pw = document.getElementById('pwInput').value;
-  if (pw === '2026') { completeLogin(); }
-  else {
+  if (pw === '2026') {
+    completeLogin();
+  } else {
     loginAttempts++;
-    document.getElementById('pwInput').classList.add('error');
-    document.getElementById('pwInput').value = '';
+    const inp = document.getElementById('pwInput');
+    inp.classList.add('error');
+    inp.value = '';
     onPwInput();
-    const msg = loginAttempts >= 3 ? `❌ كلمة المرور خاطئة (${loginAttempts} محاولات)` : '❌ كلمة المرور غير صحيحة';
+    let msg = '❌ كلمة المرور غير صحيحة';
+    if (loginAttempts >= 3) {
+      msg += ' (تأكد من إدخال 2026)';
+    }
     document.getElementById('loginError').textContent = msg;
   }
 }
+
 function logoutApp() {
   isLoggedIn = false;
   localStorage.setItem('isLoggedIn', 'false');
@@ -802,552 +833,194 @@ function logoutApp() {
   showToast('🔒 تم تسجيل الخروج');
 }
 
-// Biometric
-if (window.location.protocol === 'https:' && window.PublicKeyCredential && window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
-  PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(available => {
-    if (available && isLoggedIn) {
-      document.getElementById('biometricBtn').style.display = 'flex';
-      document.getElementById('loginDivider').style.display = 'flex';
-    }
-  });
-}
-function authenticateWithBiometric() {
-  if (!isLoggedIn) { showToast('⚠️ الرجاء تسجيل الدخول بكلمة المرور أولاً'); return; }
-  if (confirm('🔐 هل تريد فتح التطبيق؟ (استخدم بصمة إصبعك أو وجهك)')) {
-    document.getElementById('loginScreen').classList.remove('show');
-    document.getElementById('appScreen').classList.add('show');
-    initializeApp();
-  }
-}
-
 // ======= HELPERS =======
-function formatDA(amount) { return amount.toFixed(2) + ' DA'; }
-function getBalance(client) {
-  if (!client || !client.operations) return 0;
-  return client.operations.reduce((sum, op) => op.type === 'credit' ? sum + op.amount : sum - op.amount, 0);
-}
-function getColorClass(balance) { if (balance <= 0) return 'green'; if (balance < 5000) return 'yellow'; return 'red'; }
-function getInitials(name) { return name ? name.trim().charAt(0).toUpperCase() : '؟'; }
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
-}
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-function setAmount(val) { document.getElementById('opAmount').value = val; }
-
-// ======= SORT =======
-function setSortMode(mode, el) {
-  sortMode = mode;
-  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-  if (el) el.classList.add('active');
-  renderClients();
-}
-function sortClients(list) {
-  const copy = [...list];
-  if (sortMode === 'name') return copy.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
-  if (sortMode === 'debt_desc') return copy.sort((a, b) => getBalance(b) - getBalance(a));
-  if (sortMode === 'debt_asc') return copy.sort((a, b) => getBalance(a) - getBalance(b));
-  if (sortMode === 'recent') return copy.reverse();
-  return copy;
+function formatDA(amount) {
+  const n = Number(amount || 0);
+  return n.toFixed(2) + ' DA';
 }
 
-// ======= RENDER =======
-function renderClients() {
-  const list = document.getElementById('clientsList');
-  const empty = document.getElementById('emptyState');
-  let filtered = clients.filter(c => {
-    const q = searchQuery.toLowerCase();
-    const matchSearch = c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q));
-    const balance = getBalance(c);
-    const matchTab = currentTab === 'all' || (currentTab === 'debt' && balance > 0) || (currentTab === 'clear' && balance <= 0);
-    return matchSearch && matchTab;
-  });
-  filtered = sortClients(filtered);
-  if (filtered.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; }
-  else {
-    empty.style.display = 'none';
-    list.innerHTML = filtered.map(c => {
-      const balance = getBalance(c);
-      const colorClass = getColorClass(balance);
-      const balanceClass = balance <= 0 ? 'zero' : (balance < 5000 ? 'small' : 'large');
-      const opsCount = c.operations ? c.operations.length : 0;
-      const badge = balance <= 0 ? `<span class="balance-badge paid-badge">✓ مسدّد</span>` : `<span class="balance-badge debt-badge">! دين</span>`;
-      return `
-        <div class="client-card ${colorClass}" onclick="openClient('${c.id}')">
-          <div class="client-avatar">${getInitials(c.name)}</div>
-          <div class="client-info">
-            <div class="client-name">${c.name}</div>
-            <div class="client-phone">${c.phone || 'بدون هاتف'}</div>
-            ${c.note ? `<div class="client-note">${c.note}</div>` : ''}
-            <div class="client-meta"><span class="client-ops-count">📋 ${opsCount} عملية</span></div>
-          </div>
-          <div class="client-balance">
-            <div class="balance-amount ${balanceClass}" dir="ltr">${formatDA(Math.max(0, balance))}</div>
-            <div class="balance-label">الدين</div>
-            ${badge}
-          </div>
-        </div>`;
-    }).join('');
-  }
-  const totalDebt = clients.reduce((s, c) => s + Math.max(0, getBalance(c)), 0);
-  const clearCount = clients.filter(c => getBalance(c) <= 0).length;
-  document.getElementById('totalClients').textContent = clients.length;
-  document.getElementById('totalDebt').textContent = totalDebt.toFixed(0);
-  document.getElementById('totalClear').textContent = clearCount;
-}
-
-function openClient(id) {
-  const client = getClientById(id);
-  if (!client) { showToast('⚠️ تعذر فتح الزبون'); return; }
-  currentClientId = id;
-  document.getElementById('listView').classList.add('hide');
-  document.getElementById('detailView').classList.add('show');
-  document.getElementById('mainFab').style.display = 'none';
-  document.getElementById('detailAvatar').textContent = getInitials(client.name);
-  document.getElementById('detailName').textContent = client.name;
-  document.getElementById('detailPhone').textContent = client.phone || 'بدون هاتف';
-  document.getElementById('detailJoined').textContent = client.joinDate ? '📅 أضيف: ' + client.joinDate : '';
-  renderDetail();
-}
-function goBack() {
-  document.getElementById('listView').classList.remove('hide');
-  document.getElementById('detailView').classList.remove('show');
-  document.getElementById('mainFab').style.display = 'flex';
-  currentClientId = null;
-  renderClients();
-}
-function renderDetail() {
-  const client = getClientById(currentClientId);
-  if (!client) {
-    document.getElementById('operationsList').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><p>تعذر تحميل تفاصيل الزبون</p></div>';
-    return;
-  }
-  const totalCredit = client.operations ? client.operations.filter(o => o.type === 'credit').reduce((s, o) => s + o.amount, 0) : 0;
-  const totalPaid = client.operations ? client.operations.filter(o => o.type === 'pay').reduce((s, o) => s + o.amount, 0) : 0;
-  const balance = totalCredit - totalPaid;
-  document.getElementById('detailCredit').textContent = formatDA(totalCredit);
-  document.getElementById('detailPaid').textContent = formatDA(totalPaid);
-  document.getElementById('detailBalance').textContent = formatDA(Math.max(0, balance));
-  const progCard = document.getElementById('paymentProgressCard');
-  if (totalCredit > 0) {
-    progCard.style.display = 'block';
-    const pct = Math.min(100, Math.round((totalPaid / totalCredit) * 100));
-    document.getElementById('progPercent').textContent = pct + '%';
-    document.getElementById('progBar').style.width = pct + '%';
-  } else { progCard.style.display = 'none'; }
-  const opList = document.getElementById('operationsList');
-  if (!client.operations || client.operations.length === 0) {
-    opList.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><p>لا توجد عمليات بعد</p></div>`;
+function normalizeClient(raw, id) {
+  if (!raw) raw = {};
+  const opsRaw = raw.operations || {};
+  let operations;
+  if (Array.isArray(opsRaw)) {
+    operations = opsRaw.map(op => ({ ...op }));
   } else {
-    opList.innerHTML = [...ops].reverse().map(op => {
-      const icon = op.type === 'credit' ? '💸' : '💰';
-      const label = op.type === 'credit' ? 'دين' : 'دفع';
-      return `
-        <div class="op-item">
-          <div class="op-icon ${op.type}">${icon}</div>
-          <div class="op-info">
-            <div class="op-type">${label}</div>
-            <div class="op-date">${op.date}</div>
-            ${op.note ? `<div class="op-note">📝 ${op.note}</div>` : ''}
-          </div>
-          <div class="op-amount ${op.type}" dir="ltr">${op.type === 'credit' ? '+' : '-'}${formatDA(op.amount)}</div>
-          <button class="delete-op-btn" onclick="deleteOperation('${op.id}')" title="حذف">🗑️</button>
-        </div>`;
-    }).join('');
+    operations = Object.entries(opsRaw).map(([opId, op]) => ({ id: opId, ...op }));
   }
-}
-
-// ======= CRUD (تعمل على IndexedDB ثم Firebase) =======
-async function saveToDB(clientData, isUpdate = false) {
-  if (isUpdate) await db.clients.put(clientData);
-  else await db.clients.add(clientData);
-  await 
-  if (isOnline && !syncInProgress) 
-}
-async function deleteFromDB(clientId) {
-  await db.clients.delete(clientId);
-  await 
-  if (isOnline && !syncInProgress) 
-}
-async function updateOperation(clientId, newOperations) {
-  const client = await db.clients.get(clientId);
-  if (client) {
-    client.operations = newOperations;
-    await db.clients.put(client);
-    await 
-    if (currentClientId === clientId) renderDetail();
-    if (isOnline && !syncInProgress) 
-  }
-}
-
-function openAddClient() {
-  editingClientId = null;
-  document.getElementById('clientModalTitle').textContent = '➕ زبون جديد';
-  document.getElementById('clientName').value = '';
-  document.getElementById('clientPhone').value = '';
-  document.getElementById('clientNote').value = '';
-  document.getElementById('clientModal').classList.add('show');
-}
-function openEditClient() {
-  const client = clients.find(c => c.id === currentClientId);
-  if (!client) return;
-  editingClientId = client.id;
-  document.getElementById('clientModalTitle').textContent = '✏️ تعديل الزبون';
-  document.getElementById('clientName').value = client.name;
-  document.getElementById('clientPhone').value = client.phone || '';
-  document.getElementById('clientNote').value = client.note || '';
-  document.getElementById('clientModal').classList.add('show');
-}
-async function saveClient() {
-  const name = document.getElementById('clientName').value.trim();
-  if (!name) { showToast('⚠️ الاسم مطلوب'); return; }
-  const phone = document.getElementById('clientPhone').value.trim();
-  const note = document.getElementById('clientNote').value.trim();
-  if (!currentUser) return;
-  if (editingClientId) {
-    const existing = await db.clients.get(editingClientId);
-    if (existing) {
-      existing.name = name; existing.phone = phone; existing.note = note;
-      await saveToDB(existing, true);
-      showToast('✅ تم تعديل بيانات الزبون');
-    }
-  } else {
-    const now = new Date();
-    const joinDate = now.toLocaleDateString('ar-DZ');
-    const newClient = { id: Date.now().toString(), name, phone, note, joinDate, operations: [] };
-    await saveToDB(newClient, false);
-    showToast('✅ تمت إضافة الزبون');
-  }
-  closeModal('clientModal');
-  editingClientId = null;
-}
-function openOpModal(type) {
-  currentOpType = type;
-  document.getElementById('opModalTitle').textContent = type === 'credit' ? '💸 تسجيل دين' : '💰 تسجيل دفع';
-  document.getElementById('opAmount').value = '';
-  document.getElementById('opNote').value = '';
-  document.getElementById('addOpModal').classList.add('show');
-}
-async function saveOperation() {
-  const amount = parseFloat(document.getElementById('opAmount').value);
-  if (!amount || amount <= 0) { showToast('⚠️ أدخل مبلغاً صحيحاً'); return; }
-  const note = document.getElementById('opNote').value.trim();
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('ar-DZ') + ' ' + now.toLocaleTimeString('ar-DZ', { hour: '2-digit', minute: '2-digit' });
-  const newOp = { id: Date.now().toString() + Math.random(), type: currentOpType, amount, date: dateStr, note };
-  const client = await db.clients.get(currentClientId);
-  if (client) {
-    const ops = client.operations || [];
-    ops.push(newOp);
-    await updateOperation(currentClientId, ops);
-  }
-  closeModal('addOpModal');
-  showToast(currentOpType === 'credit' ? '✅ تم تسجيل الدين' : '✅ تم تسجيل الدفع');
-}
-async function deleteOperation(opId) {
-  if (!confirm('⚠️ هل أنت متأكد من حذف هذه العملية؟')) return;
-  const client = await db.clients.get(currentClientId);
-  if (client) {
-    const ops = (client.operations || []).filter(op => op.id !== opId);
-    await updateOperation(currentClientId, ops);
-    showToast('✅ تم حذف العملية');
-  }
-}
-function startDeleteClient() {
-  const client = clients.find(c => c.id === currentClientId);
-  if (!client) return;
-  pendingDeleteClientId = currentClientId;
-  document.getElementById('confirmMessage').innerHTML = `هل أنت متأكد من حذف الزبون <strong>${client.name}</strong>؟<br><small style="color:var(--red)">لا يمكن التراجع عن هذا الإجراء.</small>`;
-  document.getElementById('confirmOverlay').classList.add('show');
-}
-function cancelDelete() { pendingDeleteClientId = null; document.getElementById('confirmOverlay').classList.remove('show'); }
-async function confirmDelete() {
-  if (pendingDeleteClientId) {
-    await deleteFromDB(pendingDeleteClientId);
-    showToast('🗑️ تم حذف الزبون');
-    if (currentClientId === pendingDeleteClientId) goBack();
-  }
-  pendingDeleteClientId = null;
-  document.getElementById('confirmOverlay').classList.remove('show');
-}
-function filterByTab(tab, el) {
-  currentTab = tab;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  if (el) el.classList.add('active');
-  renderClients();
-}
-function filterClients() {
-  searchQuery = document.getElementById('searchInput').value;
-  renderClients();
-}
-
-// ======= NOTIFICATIONS =======
-function openNotificationModal() {
-  const client = clients.find(c => c.id === currentClientId);
-  if (!client) return;
-  if (!client.phone) { showToast('⚠️ هذا الزبون ليس لديه رقم هاتف'); return; }
-  const balance = Math.max(0, getBalance(client));
-  const msg = `السلام عليكم\n\nهذا تذكير برصيدكم لدى مكتبة بني هلال Y&H:\n${formatDA(balance)}\n\nنشكركم على تعاملكم معنا 🤝`;
-  document.getElementById('messageText').value = msg;
-  updatePreview();
-  document.getElementById('notificationModal').classList.add('show');
-}
-function updatePreview() {
-  const msg = document.getElementById('messageText').value;
-  document.getElementById('messagePreview').innerHTML = msg.replace(/\n/g, '<br>');
-}
-function selectMethod(method) {
-  selectedMethod = method;
-  document.getElementById('methodWhatsApp').classList.toggle('active', method === 'whatsapp');
-  document.getElementById('methodSMS').classList.toggle('active', method === 'sms');
-}
-function sendNotification() {
-  const client = clients.find(c => c.id === currentClientId);
-  if (!client || !client.phone) { showToast('⚠️ لا يمكن الإرسال'); return; }
-  const message = document.getElementById('messageText').value;
-  if (!message.trim()) { showToast('⚠️ الرجاء كتابة نص الرسالة'); return; }
-  const encoded = encodeURIComponent(message);
-  const phone = client.phone.replace(/\D/g, '');
-  if (selectedMethod === 'whatsapp') { window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank'); showToast('📱 تم فتح واتساب'); }
-  else { window.open(`sms:${phone}?body=${encoded}`, '_blank'); showToast('📱 تم فتح تطبيق الرسائل'); }
-  closeModal('notificationModal');
-}
-function callClient() {
-  const client = clients.find(c => c.id === currentClientId);
-  if (!client || !client.phone) { showToast('⚠️ لا يوجد رقم هاتف'); return; }
-  window.open(`tel:${client.phone}`, '_blank');
-}
-
-// ======= SETTINGS & EXPORTS =======
-function openSettings() { document.getElementById('settingsModal').classList.add('show'); }
-function showAbout() {
-  closeModal('settingsModal');
-  setTimeout(() => alert('📚 مكتبة بني هلال Y&H\nنظام إدارة الديون\nالإصدار: 5.0\n\nالمميزات:\n✅ شاشة بداية أنيقة\n✅ العمل بدون إنترنت (كامل)\n✅ مزامنة تلقائية\n✅ فتح بالبصمة\n✅ تغيير الشعار\n✅ تصدير Excel و PDF\n✅ وضع فاتح/داكن'), 100);
-}
-function exportExcel() {
-  if (clients.length === 0) { showToast('⚠️ لا يوجد زبائن للتصدير'); return; }
-  showToast('📊 جاري إنشاء ملف Excel...');
-  const summaryData = [['#', 'اسم الزبون', 'رقم الهاتف', 'ملاحظة', 'إجمالي الدين (DA)', 'إجمالي الدفع (DA)', 'الرصيد المتبقي (DA)', 'عدد العمليات', 'الحالة']];
-  clients.forEach((c, i) => {
-    const totalCredit = c.operations ? c.operations.filter(o => o.type === 'credit').reduce((s, o) => s + o.amount, 0) : 0;
-    const totalPaid = c.operations ? c.operations.filter(o => o.type === 'pay').reduce((s, o) => s + o.amount, 0) : 0;
-    const balance = Math.max(0, totalCredit - totalPaid);
-    const opsCount = c.operations ? c.operations.length : 0;
-    const status = balance <= 0 ? 'مسدّد ✓' : 'عليه دين ✗';
-    summaryData.push([i+1, c.name, c.phone || '', c.note || '', totalCredit, totalPaid, balance, opsCount, status]);
-  });
-  const totDebt = clients.reduce((s, c) => { const tc = c.operations ? c.operations.filter(o => o.type === 'credit').reduce((x, o) => x + o.amount, 0) : 0; return s + tc; }, 0);
-  const totPaid = clients.reduce((s, c) => { const tp = c.operations ? c.operations.filter(o => o.type === 'pay').reduce((x, o) => x + o.amount, 0) : 0; return s + tp; }, 0);
-  const totBalance = clients.reduce((s, c) => s + Math.max(0, getBalance(c)), 0);
-  summaryData.push(['', 'الإجمالي', '', '', totDebt, totPaid, totBalance, '', '']);
-  const opsData = [['اسم الزبون', 'هاتف الزبون', 'نوع العملية', 'المبلغ (DA)', 'التاريخ', 'ملاحظة']];
-  clients.forEach(c => {
-    if (c.operations) {
-      c.operations.forEach(op => {
-        opsData.push([c.name, c.phone || '', op.type === 'credit' ? 'دين' : 'دفع', op.amount, op.date, op.note || '']);
-      });
-    }
-  });
-  const wb = XLSX.utils.book_new();
-  const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
-  const ws2 = XLSX.utils.aoa_to_sheet(opsData);
-  ws1['!cols'] = [{ wch: 4 }, { wch: 22 }, { wch: 16 }, { wch: 20 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 12 }, { wch: 14 }];
-  ws2['!cols'] = [{ wch: 22 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 20 }, { wch: 24 }];
-  XLSX.utils.book_append_sheet(wb, ws1, 'ملخص الزبائن');
-  XLSX.utils.book_append_sheet(wb, ws2, 'سجل العمليات');
-  const date = new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb, `مكتبة_بني_هلال_${date}.xlsx`);
-  showToast('✅ تم تصدير ملف Excel بنجاح');
-}
-async function generatePDFAndSend() {
-  if (clients.length === 0) { showToast('⚠️ لا يوجد زبائن'); return; }
-  showToast('📄 جاري إنشاء التقرير...');
-  const reportHtml = `
-    <div style="padding:20px;font-family:Cairo,Arial;direction:rtl;background:white;color:#1e293b;">
-      <div style="text-align:center;margin-bottom:28px;border-bottom:2px solid #4361ee;padding-bottom:16px;">
-        <h1 style="color:#4361ee;font-size:24px;margin-bottom:4px;">📚 مكتبة بني هلال</h1>
-        <div style="font-size:11px;color:#4361ee;font-weight:700;letter-spacing:2px;">Y &amp; H</div>
-        <p style="color:#64748b;font-size:12px;margin-top:6px;">تقرير الديون — ${new Date().toLocaleDateString('ar-DZ')}</p>
-      </div>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead><tr style="background:#f1f5f9;"><th style="border:1px solid #e2e8f0;padding:10px;">#</th><th style="border:1px solid #e2e8f0;padding:10px;">اسم الزبون</th><th style="border:1px solid #e2e8f0;padding:10px;">رقم الهاتف</th><th style="border:1px solid #e2e8f0;padding:10px;">الدين المتبقي (DA)</th><th style="border:1px solid #e2e8f0;padding:10px;">الحالة</th></tr></thead>
-        <tbody>${clients.map((c,i) => { const balance = Math.max(0, getBalance(c)); return `<tr><td style="border:1px solid #e2e8f0;padding:8px;text-align:center;">${i+1}</td><td style="border:1px solid #e2e8f0;padding:8px;">${c.name}</td><td style="border:1px solid #e2e8f0;padding:8px;text-align:center;">${c.phone || '—'}</td><td style="border:1px solid #e2e8f0;padding:8px;text-align:center;font-weight:700;color:${balance>0?'#ef476f':'#06d6a0'};">${balance.toFixed(2)}</td><td style="border:1px solid #e2e8f0;padding:8px;text-align:center;">${balance<=0?'✅ مسدّد':'⚠️ عليه دين'}</td></tr>`; }).join('')}</tbody>
-      </table>
-      <div style="margin-top:20px;padding:14px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;"><strong>إجمالي الديون: ${clients.reduce((s,c)=>s+Math.max(0,getBalance(c)),0).toFixed(2)} DA</strong> &nbsp;&nbsp;|&nbsp;&nbsp; عدد الزبائن: ${clients.length} &nbsp;&nbsp;|&nbsp;&nbsp; مسدّدون: ${clients.filter(c=>getBalance(c)<=0).length}</div>
-      <div style="margin-top:24px;text-align:center;font-size:11px;color:#94a3b8;">تم إنشاء هذا التقرير بواسطة نظام مكتبة بني هلال Y&amp;H · الإصدار 5.0</div>
-    </div>`;
-  const el = document.createElement('div');
-  el.innerHTML = reportHtml;
-  const opt = { margin: [0.5,0.5,0.5,0.5], filename: `تقرير_ديون_مكتبة_بني_هلال_${new Date().toISOString().slice(0,10)}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } };
-  try {
-    const blob = await html2pdf().set(opt).from(el).outputPdf('blob');
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = opt.filename; a.click();
-    URL.revokeObjectURL(url);
-    showToast('✅ تم تنزيل التقرير PDF');
-  } catch(e) { showToast('❌ حدث خطأ'); }
-}
-
-// ======= CHANGE LOGO =======
-let savedLogo = localStorage.getItem('appLogo');
-function loadSavedLogo() {
-  if (savedLogo) {
-    const logoElements = [document.getElementById('headerLogoIcon'), document.getElementById('loginLogoIcon'), document.getElementById('splashLogoIcon')];
-    logoElements.forEach(el => {
-      if (el) { el.innerHTML = `<img src="${savedLogo}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`; }
-    });
-  }
-}
-function changeAppLogo() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.onchange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const imgData = event.target.result;
-        localStorage.setItem('appLogo', imgData);
-        savedLogo = imgData;
-        loadSavedLogo();
-        showToast('✅ تم تغيير شعار التطبيق بنجاح');
-      };
-      reader.readAsDataURL(file);
-    }
+  return {
+    id: id || raw.id || ('c_' + Date.now()),
+    name: raw.name || '',
+    phone: raw.phone || '',
+    note: raw.note || '',
+    joinDate: raw.joinDate || '',
+    operations
   };
-  input.click();
 }
 
-// ======= INITIALIZE =======
-function initializeApp() {
-  currentUser = { uid: 'konach_merchant' };
-  loadSavedLogo();
-  
-  if (isOnline) {
-    
-    database.ref(`merchants/${currentUser.uid}/clients`).on('value', () => { if (isOnline)  });
-  }
-  updateSyncStatus();
-}
-
-// ======= CLOSE MODAL ON BACKDROP =======
-document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
-});
-
-// ======= START (تحقق من الجلسة) =======
-if (isLoggedIn) {
-  document.getElementById('loginScreen').classList.remove('show');
-  document.getElementById('appScreen').classList.add('show');
-  initializeApp();
-} else {
-  document.getElementById('loginScreen').classList.add('show');
-  document.getElementById('appScreen').classList.remove('show');
-}
-loadSavedLogo();
-</script>
-</body>
-</htmlfunction normalizeClient(client, id) {
-  const opsRaw = (client && client.operations) ? client.operations : {};
-  const operations = Array.isArray(opsRaw) ? opsRaw : Object.values(opsRaw || {});
-  return { id: id || client.id, ...client, operations };
-}
-function getBalance(client) {
-  const ops = Array.isArray(client && client.operations) ? client.operations : [];
-  return ops.reduce((sum, op) => op.type === 'credit' ? sum + Number(op.amount || 0) : sum - Number(op.amount || 0), 0);
-}
-function getColorClass(balance) { if (balance <= 0) return 'green'; if (balance < 5000) return 'yellow'; return 'red'; }
 function getClientById(id) {
   return clientMap[id] || clients.find(c => c.id === id) || null;
 }
-um - op.amount, 0);
+
+function getBalance(client) {
+  if (!client) return 0;
+  const ops = Array.isArray(client.operations) ? client.operations : [];
+  return ops.reduce((sum, op) => {
+    const amt = Number(op.amount || 0);
+    return op.type === 'credit' ? sum + amt : sum - amt;
+  }, 0);
 }
-function getColorClass(balance) { if (balance <= 0) return 'green'; if (balance < 5000) return 'yellow'; return 'red'; }
-function getInitials(name) { return name ? name.trim().charAt(0).toUpperCase() : '؟'; }
+
+function getColorClass(balance) {
+  if (balance <= 0) return 'green';
+  if (balance < 5000) return 'yellow';
+  return 'red';
+}
+
+function getInitials(name) {
+  return name && name.trim() ? name.trim().charAt(0).toUpperCase() : '؟';
+}
+
 function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2800);
 }
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-function setAmount(val) { document.getElementById('opAmount').value = val; }
 
-// ======= SORT =======
+function closeModal(id) {
+  const m = document.getElementById(id);
+  if (m) m.classList.remove('show');
+}
+
+function setAmount(val) {
+  const inp = document.getElementById('opAmount');
+  if (inp) inp.value = val;
+}
+
+// ======= SORTING =======
 function setSortMode(mode, el) {
   sortMode = mode;
   document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
   renderClients();
 }
+
 function sortClients(list) {
   const copy = [...list];
-  if (sortMode === 'name') return copy.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
-  if (sortMode === 'debt_desc') return copy.sort((a, b) => getBalance(b) - getBalance(a));
-  if (sortMode === 'debt_asc') return copy.sort((a, b) => getBalance(a) - getBalance(b));
-  if (sortMode === 'recent') return copy.reverse();
+  if (sortMode === 'name') {
+    return copy.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+  }
+  if (sortMode === 'debt_desc') {
+    return copy.sort((a, b) => getBalance(b) - getBalance(a));
+  }
+  if (sortMode === 'debt_asc') {
+    return copy.sort((a, b) => getBalance(a) - getBalance(b));
+  }
+  if (sortMode === 'recent') {
+    return copy.reverse();
+  }
   return copy;
 }
 
-// ======= RENDER =======
+// ======= RENDER LIST & STATS =======
 function renderClients() {
   const list = document.getElementById('clientsList');
   const empty = document.getElementById('emptyState');
+  if (!list || !empty) return;
+
   let filtered = clients.filter(c => {
     const q = searchQuery.toLowerCase();
-    const matchSearch = c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q));
+    const matchSearch =
+      !q ||
+      c.name.toLowerCase().includes(q) ||
+      (c.phone && c.phone.includes(q));
     const balance = getBalance(c);
-    const matchTab = currentTab === 'all' || (currentTab === 'debt' && balance > 0) || (currentTab === 'clear' && balance <= 0);
+    const matchTab =
+      currentTab === 'all' ||
+      (currentTab === 'debt' && balance > 0) ||
+      (currentTab === 'clear' && balance <= 0);
     return matchSearch && matchTab;
   });
+
   filtered = sortClients(filtered);
-  if (filtered.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; }
-  else {
-    empty.style.display = 'none';
-    list.innerHTML = filtered.map(c => {
-      const balance = getBalance(c);
-      const colorClass = getColorClass(balance);
-      const balanceClass = balance <= 0 ? 'zero' : (balance < 5000 ? 'small' : 'large');
-      const opsCount = c.operations ? c.operations.length : 0;
-      const badge = balance <= 0 ? `<span class="balance-badge paid-badge">✓ مسدّد</span>` : `<span class="balance-badge debt-badge">! دين</span>`;
-      return `
-        <div class="client-card ${colorClass}" onclick="openClient('${c.id}')">
-          <div class="client-avatar">${getInitials(c.name)}</div>
-          <div class="client-info">
-            <div class="client-name">${c.name}</div>
-            <div class="client-phone">${c.phone || 'بدون هاتف'}</div>
-            ${c.note ? `<div class="client-note">${c.note}</div>` : ''}
-            <div class="client-meta"><span class="client-ops-count">📋 ${opsCount} عملية</span></div>
-          </div>
-          <div class="client-balance">
-            <div class="balance-amount ${balanceClass}" dir="ltr">${formatDA(Math.max(0, balance))}</div>
-            <div class="balance-label">الدين</div>
-            ${badge}
-          </div>
-        </div>`;
-    }).join('');
+
+  if (!filtered.length) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
   }
-  const totalDebt = clients.reduce((s, c) => s + Math.max(0, getBalance(c)), 0);
-  const clearCount = clients.filter(c => getBalance(c) <= 0).length;
-  document.getElementById('totalClients').textContent = clients.length;
-  document.getElementById('totalDebt').textContent = totalDebt.toFixed(0);
-  document.getElementById('totalClear').textContent = clearCount;
+
+  empty.style.display = 'none';
+
+  list.innerHTML = filtered.map(c => {
+    const balance = getBalance(c);
+    const colorClass = getColorClass(balance);
+    const balanceClass =
+      balance <= 0 ? 'zero' : balance < 5000 ? 'small' : 'large';
+    const opsCount = Array.isArray(c.operations) ? c.operations.length : 0;
+    const badge =
+      balance <= 0
+        ? '<span class="balance-badge paid-badge">مسدّد</span>'
+        : '<span class="balance-badge debt-badge">عليه دين</span>';
+
+    return `
+      <div class="client-card ${colorClass}" onclick="openClient('${c.id}')">
+        <div class="client-avatar">${getInitials(c.name)}</div>
+        <div class="client-info">
+          <div class="client-name">${c.name}</div>
+          <div class="client-phone">${c.phone || ''}</div>
+          ${c.note ? `<div class="client-note">${c.note}</div>` : ''}
+          <div class="client-meta">
+            <span class="client-ops-count">${opsCount} عملية</span>
+          </div>
+        </div>
+        <div class="client-balance">
+          <div class="balance-amount ${balanceClass}" dir="ltr">${formatDA(Math.max(0, balance))}</div>
+          <div class="balance-label">الدين</div>
+          ${badge}
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
+function updateStats() {
+  const totalDebt = clients.reduce((s, c) => s + Math.max(0, getBalance(c)), 0);
+  const clearCount = clients.filter(c => getBalance(c) <= 0).length;
+  const totalClients = clients.length;
+
+  const elClients = document.getElementById('totalClients');
+  const elDebt = document.getElementById('totalDebt');
+  const elClear = document.getElementById('totalClear');
+
+  if (elClients) elClients.textContent = totalClients;
+  if (elDebt) elDebt.textContent = totalDebt.toFixed(0);
+  if (elClear) elClear.textContent = clearCount;
+}
+
+// ======= DETAIL VIEW =======
 function openClient(id) {
   const client = getClientById(id);
-  if (!client) { showToast('⚠️ تعذر فتح الزبون'); return; }
+  if (!client) {
+    showToast('⚠️ تعذر فتح الزبون');
+    return;
+  }
   currentClientId = id;
   document.getElementById('listView').classList.add('hide');
   document.getElementById('detailView').classList.add('show');
   document.getElementById('mainFab').style.display = 'none';
+
   document.getElementById('detailAvatar').textContent = getInitials(client.name);
   document.getElementById('detailName').textContent = client.name;
   document.getElementById('detailPhone').textContent = client.phone || 'بدون هاتف';
-  document.getElementById('detailJoined').textContent = client.joinDate ? '📅 أضيف: ' + client.joinDate : '';
+  document.getElementById('detailJoined').textContent =
+    client.joinDate ? '📅 أضيف: ' + client.joinDate : '';
+
   renderDetail();
 }
+
 function goBack() {
   document.getElementById('listView').classList.remove('hide');
   document.getElementById('detailView').classList.remove('show');
@@ -1355,70 +1028,69 @@ function goBack() {
   currentClientId = null;
   renderClients();
 }
+
 function renderDetail() {
   const client = getClientById(currentClientId);
+  const opList = document.getElementById('operationsList');
+
   if (!client) {
-    document.getElementById('operationsList').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><p>تعذر تحميل تفاصيل الزبون</p></div>';
+    if (opList) {
+      opList.innerHTML =
+        '<div class="empty"><div class="empty-icon">⚠️</div><p>تعذر تحميل تفاصيل الزبون</p></div>';
+    }
     return;
   }
-  const totalCredit = client.operations ? client.operations.filter(o => o.type === 'credit').reduce((s, o) => s + o.amount, 0) : 0;
-  const totalPaid = client.operations ? client.operations.filter(o => o.type === 'pay').reduce((s, o) => s + o.amount, 0) : 0;
+
+  const ops = Array.isArray(client.operations) ? client.operations : [];
+  const totalCredit = ops
+    .filter(o => o.type === 'credit')
+    .reduce((s, o) => s + Number(o.amount || 0), 0);
+  const totalPaid = ops
+    .filter(o => o.type === 'pay')
+    .reduce((s, o) => s + Number(o.amount || 0), 0);
   const balance = totalCredit - totalPaid;
+
   document.getElementById('detailCredit').textContent = formatDA(totalCredit);
   document.getElementById('detailPaid').textContent = formatDA(totalPaid);
   document.getElementById('detailBalance').textContent = formatDA(Math.max(0, balance));
+
   const progCard = document.getElementById('paymentProgressCard');
   if (totalCredit > 0) {
-    progCard.style.display = 'block';
     const pct = Math.min(100, Math.round((totalPaid / totalCredit) * 100));
+    progCard.style.display = 'block';
     document.getElementById('progPercent').textContent = pct + '%';
     document.getElementById('progBar').style.width = pct + '%';
-  } else { progCard.style.display = 'none'; }
-  const opList = document.getElementById('operationsList');
-  if (!client.operations || client.operations.length === 0) {
-    opList.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><p>لا توجد عمليات بعد</p></div>`;
+  } else {
+    progCard.style.display = 'none';
+  }
+
+  if (!opList) return;
+
+  if (!ops.length) {
+    opList.innerHTML =
+      '<div class="empty"><div class="empty-icon">📋</div><p>لا توجد عمليات بعد</p></div>';
   } else {
     opList.innerHTML = [...ops].reverse().map(op => {
       const icon = op.type === 'credit' ? '💸' : '💰';
       const label = op.type === 'credit' ? 'دين' : 'دفع';
+      const sign = op.type === 'credit' ? '+' : '-';
       return `
         <div class="op-item">
           <div class="op-icon ${op.type}">${icon}</div>
           <div class="op-info">
             <div class="op-type">${label}</div>
-            <div class="op-date">${op.date}</div>
+            <div class="op-date">${op.date || ''}</div>
             ${op.note ? `<div class="op-note">📝 ${op.note}</div>` : ''}
           </div>
-          <div class="op-amount ${op.type}" dir="ltr">${op.type === 'credit' ? '+' : '-'}${formatDA(op.amount)}</div>
+          <div class="op-amount ${op.type}" dir="ltr">${sign}${formatDA(op.amount)}</div>
           <button class="delete-op-btn" onclick="deleteOperation('${op.id}')" title="حذف">🗑️</button>
-        </div>`;
+        </div>
+      `;
     }).join('');
   }
 }
 
-// ======= CRUD (تعمل على IndexedDB ثم Firebase) =======
-async function saveToDB(clientData, isUpdate = false) {
-  if (isUpdate) await db.clients.put(clientData);
-  else await db.clients.add(clientData);
-  await 
-  if (isOnline && !syncInProgress) 
-}
-async function deleteFromDB(clientId) {
-  await db.clients.delete(clientId);
-  await 
-  if (isOnline && !syncInProgress) 
-}
-async function updateOperation(clientId, newOperations) {
-  const client = await db.clients.get(clientId);
-  if (client) {
-    client.operations = newOperations;
-    await db.clients.put(client);
-    await 
-    if (currentClientId === clientId) renderDetail();
-    if (isOnline && !syncInProgress) 
-  }
-}
-
+// ======= CRUD WITH FIREBASE =======
 function openAddClient() {
   editingClientId = null;
   document.getElementById('clientModalTitle').textContent = '➕ زبون جديد';
@@ -1427,255 +1099,354 @@ function openAddClient() {
   document.getElementById('clientNote').value = '';
   document.getElementById('clientModal').classList.add('show');
 }
+
 function openEditClient() {
-  const client = clients.find(c => c.id === currentClientId);
+  const client = getClientById(currentClientId);
   if (!client) return;
   editingClientId = client.id;
   document.getElementById('clientModalTitle').textContent = '✏️ تعديل الزبون';
-  document.getElementById('clientName').value = client.name;
+  document.getElementById('clientName').value = client.name || '';
   document.getElementById('clientPhone').value = client.phone || '';
   document.getElementById('clientNote').value = client.note || '';
   document.getElementById('clientModal').classList.add('show');
 }
+
 async function saveClient() {
+  if (!currentUser) return;
   const name = document.getElementById('clientName').value.trim();
-  if (!name) { showToast('⚠️ الاسم مطلوب'); return; }
+  if (!name) {
+    showToast('⚠️ الاسم مطلوب');
+    return;
+  }
   const phone = document.getElementById('clientPhone').value.trim();
   const note = document.getElementById('clientNote').value.trim();
-  if (!currentUser) return;
-  if (editingClientId) {
-    const existing = await db.clients.get(editingClientId);
-    if (existing) {
-      existing.name = name; existing.phone = phone; existing.note = note;
-      await saveToDB(existing, true);
-      showToast('✅ تم تعديل بيانات الزبون');
-    }
-  } else {
+
+  try {
     const now = new Date();
     const joinDate = now.toLocaleDateString('ar-DZ');
-    const newClient = { id: Date.now().toString(), name, phone, note, joinDate, operations: [] };
-    await saveToDB(newClient, false);
-    showToast('✅ تمت إضافة الزبون');
+
+    if (editingClientId) {
+      await database
+        .ref(`merchants/${currentUser.uid}/clients/${editingClientId}`)
+        .update({
+          name,
+          phone,
+          note,
+          updatedAt: Date.now()
+        });
+      showToast('✅ تم تعديل بيانات الزبون');
+    } else {
+      const id = 'c_' + Date.now();
+      await database
+        .ref(`merchants/${currentUser.uid}/clients/${id}`)
+        .set({
+          id,
+          name,
+          phone,
+          note,
+          joinDate,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          operations: {}
+        });
+      showToast('✅ تم إضافة الزبون');
+    }
+  } catch (e) {
+    console.error(e);
+    showToast('❌ تعذّر حفظ الزبون');
+  } finally {
+    closeModal('clientModal');
+    editingClientId = null;
   }
-  closeModal('clientModal');
-  editingClientId = null;
 }
+
 function openOpModal(type) {
+  if (!currentClientId) {
+    showToast('⚠️ اختر زبوناً أولاً');
+    return;
+  }
   currentOpType = type;
-  document.getElementById('opModalTitle').textContent = type === 'credit' ? '💸 تسجيل دين' : '💰 تسجيل دفع';
+  document.getElementById('opModalTitle').textContent =
+    type === 'credit' ? 'تسجيل دين' : 'تسجيل دفع';
   document.getElementById('opAmount').value = '';
   document.getElementById('opNote').value = '';
   document.getElementById('addOpModal').classList.add('show');
 }
+
 async function saveOperation() {
+  if (!currentUser || !currentClientId) return;
   const amount = parseFloat(document.getElementById('opAmount').value);
-  if (!amount || amount <= 0) { showToast('⚠️ أدخل مبلغاً صحيحاً'); return; }
+  if (!amount || amount <= 0) {
+    showToast('⚠️ أدخل مبلغًا صحيحًا');
+    return;
+  }
   const note = document.getElementById('opNote').value.trim();
   const now = new Date();
-  const dateStr = now.toLocaleDateString('ar-DZ') + ' ' + now.toLocaleTimeString('ar-DZ', { hour: '2-digit', minute: '2-digit' });
-  const newOp = { id: Date.now().toString() + Math.random(), type: currentOpType, amount, date: dateStr, note };
-  const client = await db.clients.get(currentClientId);
-  if (client) {
-    const ops = client.operations || [];
-    ops.push(newOp);
-    await updateOperation(currentClientId, ops);
+  const opId = 'op_' + Date.now();
+
+  const payload = {
+    id: opId,
+    type: currentOpType,
+    amount: Number(amount),
+    note,
+    date:
+      now.toLocaleDateString('ar-DZ') +
+      ' ' +
+      now.toLocaleTimeString('ar-DZ', { hour: '2-digit', minute: '2-digit' }),
+    createdAt: Date.now()
+  };
+
+  try {
+    await database
+      .ref(`merchants/${currentUser.uid}/clients/${currentClientId}/operations/${opId}`)
+      .set(payload);
+    await database
+      .ref(`merchants/${currentUser.uid}/clients/${currentClientId}`)
+      .update({ updatedAt: Date.now() });
+    showToast(
+      currentOpType === 'credit'
+        ? '✅ تم تسجيل الدين فورًا'
+        : '✅ تم تسجيل الدفع فورًا'
+    );
+  } catch (e) {
+    console.error(e);
+    showToast('❌ تعذّر تسجيل العملية');
+  } finally {
+    closeModal('addOpModal');
   }
-  closeModal('addOpModal');
-  showToast(currentOpType === 'credit' ? '✅ تم تسجيل الدين' : '✅ تم تسجيل الدفع');
 }
+
 async function deleteOperation(opId) {
+  if (!currentUser || !currentClientId) return;
   if (!confirm('⚠️ هل أنت متأكد من حذف هذه العملية؟')) return;
-  const client = await db.clients.get(currentClientId);
-  if (client) {
-    const ops = (client.operations || []).filter(op => op.id !== opId);
-    await updateOperation(currentClientId, ops);
+  try {
+    await database
+      .ref(
+        `merchants/${currentUser.uid}/clients/${currentClientId}/operations/${opId}`
+      )
+      .remove();
+    await database
+      .ref(`merchants/${currentUser.uid}/clients/${currentClientId}`)
+      .update({ updatedAt: Date.now() });
     showToast('✅ تم حذف العملية');
+  } catch (e) {
+    console.error(e);
+    showToast('❌ تعذّر حذف العملية');
   }
 }
+
 function startDeleteClient() {
-  const client = clients.find(c => c.id === currentClientId);
+  const client = getClientById(currentClientId);
   if (!client) return;
-  pendingDeleteClientId = currentClientId;
-  document.getElementById('confirmMessage').innerHTML = `هل أنت متأكد من حذف الزبون <strong>${client.name}</strong>؟<br><small style="color:var(--red)">لا يمكن التراجع عن هذا الإجراء.</small>`;
+  pendingDeleteClientId = client.id;
+  document.getElementById(
+    'confirmMessage'
+  ).innerHTML = `هل أنت متأكد من حذف الزبون <strong>${client.name}</strong>؟<br><small style="color:var(--red)">سيُحذف من Firebase مباشرة ولن يعود من جديد.</small>`;
   document.getElementById('confirmOverlay').classList.add('show');
 }
-function cancelDelete() { pendingDeleteClientId = null; document.getElementById('confirmOverlay').classList.remove('show'); }
-async function confirmDelete() {
-  if (pendingDeleteClientId) {
-    await deleteFromDB(pendingDeleteClientId);
-    showToast('🗑️ تم حذف الزبون');
-    if (currentClientId === pendingDeleteClientId) goBack();
-  }
+
+function cancelDelete() {
   pendingDeleteClientId = null;
   document.getElementById('confirmOverlay').classList.remove('show');
 }
+
+async function confirmDelete() {
+  if (!currentUser || !pendingDeleteClientId) return;
+  try {
+    const deletingId = pendingDeleteClientId;
+    await database
+      .ref(`merchants/${currentUser.uid}/clients/${deletingId}`)
+      .remove();
+    showToast('🗑️ تم حذف الزبون نهائيًا');
+    if (currentClientId === deletingId) goBack();
+  } catch (e) {
+    console.error(e);
+    showToast('❌ لم يتم حذف الزبون');
+  } finally {
+    pendingDeleteClientId = null;
+    document.getElementById('confirmOverlay').classList.remove('show');
+  }
+}
+
+// ======= FILTERS =======
 function filterByTab(tab, el) {
   currentTab = tab;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   if (el) el.classList.add('active');
   renderClients();
 }
+
 function filterClients() {
-  searchQuery = document.getElementById('searchInput').value;
+  const inp = document.getElementById('searchInput');
+  searchQuery = inp ? inp.value : '';
   renderClients();
 }
 
 // ======= NOTIFICATIONS =======
 function openNotificationModal() {
-  const client = clients.find(c => c.id === currentClientId);
+  const client = getClientById(currentClientId);
   if (!client) return;
-  if (!client.phone) { showToast('⚠️ هذا الزبون ليس لديه رقم هاتف'); return; }
+  if (!client.phone) {
+    showToast('⚠️ هذا الزبون ليس لديه رقم هاتف');
+    return;
+  }
   const balance = Math.max(0, getBalance(client));
-  const msg = `السلام عليكم\n\nهذا تذكير برصيدكم لدى مكتبة بني هلال Y&H:\n${formatDA(balance)}\n\nنشكركم على تعاملكم معنا 🤝`;
+  const msg =
+    'السلام عليكم
+
+' +
+    'هذا تذكير برصيدكم لدى مكتبة بني هلال Y&H:
+' +
+    formatDA(balance) +
+    '
+
+نشكركم على تعاملكم معنا 🤝';
   document.getElementById('messageText').value = msg;
   updatePreview();
   document.getElementById('notificationModal').classList.add('show');
 }
+
 function updatePreview() {
   const msg = document.getElementById('messageText').value;
-  document.getElementById('messagePreview').innerHTML = msg.replace(/\n/g, '<br>');
+  document.getElementById('messagePreview').innerHTML = msg
+    .replace(/
+/g, '<br>');
 }
+
 function selectMethod(method) {
   selectedMethod = method;
-  document.getElementById('methodWhatsApp').classList.toggle('active', method === 'whatsapp');
-  document.getElementById('methodSMS').classList.toggle('active', method === 'sms');
+  document
+    .getElementById('methodWhatsApp')
+    .classList.toggle('active', method === 'whatsapp');
+  document
+    .getElementById('methodSMS')
+    .classList.toggle('active', method === 'sms');
 }
+
 function sendNotification() {
-  const client = clients.find(c => c.id === currentClientId);
-  if (!client || !client.phone) { showToast('⚠️ لا يمكن الإرسال'); return; }
+  const client = getClientById(currentClientId);
+  if (!client || !client.phone) {
+    showToast('⚠️ هذا الزبون ليس لديه رقم هاتف');
+    return;
+  }
   const message = document.getElementById('messageText').value;
-  if (!message.trim()) { showToast('⚠️ الرجاء كتابة نص الرسالة'); return; }
+  if (!message.trim()) {
+    showToast('⚠️ نص الرسالة فارغ');
+    return;
+  }
   const encoded = encodeURIComponent(message);
-  const phone = client.phone.replace(/\D/g, '');
-  if (selectedMethod === 'whatsapp') { window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank'); showToast('📱 تم فتح واتساب'); }
-  else { window.open(`sms:${phone}?body=${encoded}`, '_blank'); showToast('📱 تم فتح تطبيق الرسائل'); }
+  const phone = client.phone.replace(/[^0-9+]/g, '');
+  if (selectedMethod === 'whatsapp') {
+    window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
+    showToast('📤 فتح واتساب');
+  } else {
+    window.open(`sms:${phone}?body=${encoded}`, '_blank');
+    showToast('📤 فتح تطبيق الرسائل');
+  }
   closeModal('notificationModal');
 }
+
 function callClient() {
-  const client = clients.find(c => c.id === currentClientId);
-  if (!client || !client.phone) { showToast('⚠️ لا يوجد رقم هاتف'); return; }
+  const client = getClientById(currentClientId);
+  if (!client || !client.phone) {
+    showToast('⚠️ هذا الزبون ليس لديه رقم هاتف');
+    return;
+  }
   window.open(`tel:${client.phone}`, '_blank');
 }
 
-// ======= SETTINGS & EXPORTS =======
-function openSettings() { document.getElementById('settingsModal').classList.add('show'); }
+// ======= SETTINGS & EXPORT (مبسطة) =======
+function openSettings() {
+  document.getElementById('settingsModal').classList.add('show');
+}
+
 function showAbout() {
   closeModal('settingsModal');
-  setTimeout(() => alert('📚 مكتبة بني هلال Y&H\nنظام إدارة الديون\nالإصدار: 5.0\n\nالمميزات:\n✅ شاشة بداية أنيقة\n✅ العمل بدون إنترنت (كامل)\n✅ مزامنة تلقائية\n✅ فتح بالبصمة\n✅ تغيير الشعار\n✅ تصدير Excel و PDF\n✅ وضع فاتح/داكن'), 100);
+  setTimeout(() => {
+    alert('مكتبة بني هلال Y&H
+الإصدار 5.0 (نسخة Firebase فقط)');
+  }, 200);
 }
+
 function exportExcel() {
-  if (clients.length === 0) { showToast('⚠️ لا يوجد زبائن للتصدير'); return; }
-  showToast('📊 جاري إنشاء ملف Excel...');
-  const summaryData = [['#', 'اسم الزبون', 'رقم الهاتف', 'ملاحظة', 'إجمالي الدين (DA)', 'إجمالي الدفع (DA)', 'الرصيد المتبقي (DA)', 'عدد العمليات', 'الحالة']];
-  clients.forEach((c, i) => {
-    const totalCredit = c.operations ? c.operations.filter(o => o.type === 'credit').reduce((s, o) => s + o.amount, 0) : 0;
-    const totalPaid = c.operations ? c.operations.filter(o => o.type === 'pay').reduce((s, o) => s + o.amount, 0) : 0;
-    const balance = Math.max(0, totalCredit - totalPaid);
-    const opsCount = c.operations ? c.operations.length : 0;
-    const status = balance <= 0 ? 'مسدّد ✓' : 'عليه دين ✗';
-    summaryData.push([i+1, c.name, c.phone || '', c.note || '', totalCredit, totalPaid, balance, opsCount, status]);
-  });
-  const totDebt = clients.reduce((s, c) => { const tc = c.operations ? c.operations.filter(o => o.type === 'credit').reduce((x, o) => x + o.amount, 0) : 0; return s + tc; }, 0);
-  const totPaid = clients.reduce((s, c) => { const tp = c.operations ? c.operations.filter(o => o.type === 'pay').reduce((x, o) => x + o.amount, 0) : 0; return s + tp; }, 0);
-  const totBalance = clients.reduce((s, c) => s + Math.max(0, getBalance(c)), 0);
-  summaryData.push(['', 'الإجمالي', '', '', totDebt, totPaid, totBalance, '', '']);
-  const opsData = [['اسم الزبون', 'هاتف الزبون', 'نوع العملية', 'المبلغ (DA)', 'التاريخ', 'ملاحظة']];
-  clients.forEach(c => {
-    if (c.operations) {
-      c.operations.forEach(op => {
-        opsData.push([c.name, c.phone || '', op.type === 'credit' ? 'دين' : 'دفع', op.amount, op.date, op.note || '']);
-      });
-    }
-  });
-  const wb = XLSX.utils.book_new();
-  const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
-  const ws2 = XLSX.utils.aoa_to_sheet(opsData);
-  ws1['!cols'] = [{ wch: 4 }, { wch: 22 }, { wch: 16 }, { wch: 20 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 12 }, { wch: 14 }];
-  ws2['!cols'] = [{ wch: 22 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 20 }, { wch: 24 }];
-  XLSX.utils.book_append_sheet(wb, ws1, 'ملخص الزبائن');
-  XLSX.utils.book_append_sheet(wb, ws2, 'سجل العمليات');
-  const date = new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb, `مكتبة_بني_هلال_${date}.xlsx`);
-  showToast('✅ تم تصدير ملف Excel بنجاح');
+  showToast('📊 تصدير Excel سيتم تفعيله لاحقًا');
 }
-async function generatePDFAndSend() {
-  if (clients.length === 0) { showToast('⚠️ لا يوجد زبائن'); return; }
-  showToast('📄 جاري إنشاء التقرير...');
-  const reportHtml = `
-    <div style="padding:20px;font-family:Cairo,Arial;direction:rtl;background:white;color:#1e293b;">
-      <div style="text-align:center;margin-bottom:28px;border-bottom:2px solid #4361ee;padding-bottom:16px;">
-        <h1 style="color:#4361ee;font-size:24px;margin-bottom:4px;">📚 مكتبة بني هلال</h1>
-        <div style="font-size:11px;color:#4361ee;font-weight:700;letter-spacing:2px;">Y &amp; H</div>
-        <p style="color:#64748b;font-size:12px;margin-top:6px;">تقرير الديون — ${new Date().toLocaleDateString('ar-DZ')}</p>
-      </div>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead><tr style="background:#f1f5f9;"><th style="border:1px solid #e2e8f0;padding:10px;">#</th><th style="border:1px solid #e2e8f0;padding:10px;">اسم الزبون</th><th style="border:1px solid #e2e8f0;padding:10px;">رقم الهاتف</th><th style="border:1px solid #e2e8f0;padding:10px;">الدين المتبقي (DA)</th><th style="border:1px solid #e2e8f0;padding:10px;">الحالة</th></tr></thead>
-        <tbody>${clients.map((c,i) => { const balance = Math.max(0, getBalance(c)); return `<tr><td style="border:1px solid #e2e8f0;padding:8px;text-align:center;">${i+1}</td><td style="border:1px solid #e2e8f0;padding:8px;">${c.name}</td><td style="border:1px solid #e2e8f0;padding:8px;text-align:center;">${c.phone || '—'}</td><td style="border:1px solid #e2e8f0;padding:8px;text-align:center;font-weight:700;color:${balance>0?'#ef476f':'#06d6a0'};">${balance.toFixed(2)}</td><td style="border:1px solid #e2e8f0;padding:8px;text-align:center;">${balance<=0?'✅ مسدّد':'⚠️ عليه دين'}</td></tr>`; }).join('')}</tbody>
-      </table>
-      <div style="margin-top:20px;padding:14px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;"><strong>إجمالي الديون: ${clients.reduce((s,c)=>s+Math.max(0,getBalance(c)),0).toFixed(2)} DA</strong> &nbsp;&nbsp;|&nbsp;&nbsp; عدد الزبائن: ${clients.length} &nbsp;&nbsp;|&nbsp;&nbsp; مسدّدون: ${clients.filter(c=>getBalance(c)<=0).length}</div>
-      <div style="margin-top:24px;text-align:center;font-size:11px;color:#94a3b8;">تم إنشاء هذا التقرير بواسطة نظام مكتبة بني هلال Y&amp;H · الإصدار 5.0</div>
-    </div>`;
-  const el = document.createElement('div');
-  el.innerHTML = reportHtml;
-  const opt = { margin: [0.5,0.5,0.5,0.5], filename: `تقرير_ديون_مكتبة_بني_هلال_${new Date().toISOString().slice(0,10)}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } };
-  try {
-    const blob = await html2pdf().set(opt).from(el).outputPdf('blob');
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = opt.filename; a.click();
-    URL.revokeObjectURL(url);
-    showToast('✅ تم تنزيل التقرير PDF');
-  } catch(e) { showToast('❌ حدث خطأ'); }
+
+function generatePDFAndSend() {
+  showToast('📄 تقرير PDF سيتم تفعيله لاحقًا');
 }
 
 // ======= CHANGE LOGO =======
 let savedLogo = localStorage.getItem('appLogo');
+
 function loadSavedLogo() {
-  if (savedLogo) {
-    const logoElements = [document.getElementById('headerLogoIcon'), document.getElementById('loginLogoIcon'), document.getElementById('splashLogoIcon')];
-    logoElements.forEach(el => {
-      if (el) { el.innerHTML = `<img src="${savedLogo}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`; }
-    });
-  }
+  if (!savedLogo) return;
+  const logoElements = [
+    document.getElementById('headerLogoIcon'),
+    document.getElementById('loginLogoIcon'),
+    document.getElementById('splashLogoIcon')
+  ];
+  logoElements.forEach(el => {
+    if (!el) return;
+    el.innerHTML =
+      '<img src="' +
+      savedLogo +
+      '" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">';
+  });
 }
+
 function changeAppLogo() {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*';
-  input.onchange = (e) => {
+  input.onchange = e => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const imgData = event.target.result;
-        localStorage.setItem('appLogo', imgData);
-        savedLogo = imgData;
-        loadSavedLogo();
-        showToast('✅ تم تغيير شعار التطبيق بنجاح');
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = event => {
+      const imgData = event.target.result;
+      localStorage.setItem('appLogo', imgData);
+      savedLogo = imgData;
+      loadSavedLogo();
+      showToast('🖼️ تم تغيير الشعار');
+    };
+    reader.readAsDataURL(file);
   };
   input.click();
 }
 
-// ======= INITIALIZE =======
+// ======= INITIALIZE (FIREBASE ONLY) =======
 function initializeApp() {
   currentUser = { uid: 'konach_merchant' };
   loadSavedLogo();
-  
-  if (isOnline) {
-    
-    database.ref(`merchants/${currentUser.uid}/clients`).on('value', () => { if (isOnline)  });
-  }
+
+  const ref = database.ref(`merchants/${currentUser.uid}/clients`);
+  syncInProgress = true;
   updateSyncStatus();
+
+  ref.on('value', snapshot => {
+    const data = snapshot.val() || {};
+    clientMap = {};
+    Object.entries(data).forEach(([id, c]) => {
+      clientMap[id] = normalizeClient(c, id);
+    });
+    clients = Object.values(clientMap);
+    renderClients();
+    updateStats();
+    if (currentClientId) renderDetail();
+    syncInProgress = false;
+    updateSyncStatus();
+  });
 }
 
 // ======= CLOSE MODAL ON BACKDROP =======
 document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
+  m.addEventListener('click', e => {
+    if (e.target === m) m.classList.remove('show');
+  });
 });
 
-// ======= START (تحقق من الجلسة) =======
+// ======= STARTUP =======
 if (isLoggedIn) {
   document.getElementById('loginScreen').classList.remove('show');
   document.getElementById('appScreen').classList.add('show');

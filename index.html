@@ -213,12 +213,12 @@
 </style>
 </head>
 <body>
-<div id="splashScreen"><div class="splash-logo"><div class="splash-logo-icon" id="splashLogoIcon">📚</div><h1>مكتبة بني هلال</h1><p>نظام إدارة الديون</p><div class="badge">Y&amp;H · v6.1 أونلاين</div></div></div>
+<div id="splashScreen"><div class="splash-logo"><div class="splash-logo-icon" id="splashLogoIcon">📚</div><h1>مكتبة بني هلال</h1><p>نظام إدارة الديون</p><div class="badge">Y&amp;H · v6.3 أونلاين</div></div></div>
 <div id="offlineIndicator" class="offline-indicator">⚠️ لا يوجد اتصال بالإنترنت - هذه النسخة لا تحفظ الديون محلياً</div>
 
 <div id="loginScreen" class="show">
   <div class="login-card">
-    <div class="login-logo"><div class="login-logo-icon" id="loginLogoIcon">📚</div><h1>مكتبة بني هلال</h1><p>نظام إدارة الديون المتطور</p><span class="badge">Y&H · v6.1</span></div>
+    <div class="login-logo"><div class="login-logo-icon" id="loginLogoIcon">📚</div><h1>مكتبة بني هلال</h1><p>نظام إدارة الديون المتطور</p><span class="badge">Y&H · v6.3</span></div>
     <div class="login-title">تسجيل الدخول</div><div class="login-subtitle">أدخل كلمة المرور للوصول إلى نظامك</div>
     <div class="pw-input-wrap"><input type="password" id="pwInput" maxlength="6" placeholder="● ● ● ●" inputmode="numeric" oninput="onPwInput()" onkeydown="if(event.key==='Enter')doLogin()"><button class="pw-toggle" onclick="togglePwShow()">👁️</button></div>
     <div class="login-dots" id="loginDots"><div class="login-dot" id="dot0"></div><div class="login-dot" id="dot1"></div><div class="login-dot" id="dot2"></div><div class="login-dot" id="dot3"></div></div>
@@ -256,7 +256,7 @@
 <div class="modal-overlay" id="clientModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title" id="clientModalTitle">➕ زبون جديد</div><div class="form-group"><label class="form-label">الاسم واللقب *</label><input class="form-input" type="text" id="clientName" placeholder="اسم الزبون الكامل"></div><div class="form-group"><label class="form-label">رقم الهاتف</label><input class="form-input" type="tel" id="clientPhone" placeholder="0555 000 000"></div><div class="form-group"><label class="form-label">ملاحظة</label><input class="form-input" type="text" id="clientNote" placeholder="ملاحظة اختيارية..."></div><div class="btn-row"><button class="btn btn-secondary" onclick="closeModal('clientModal')">إلغاء</button><button class="btn btn-primary" id="saveClientBtn" onclick="saveClient()">💾 حفظ</button></div></div></div>
 <div class="modal-overlay" id="addOpModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title" id="opModalTitle">تسجيل عملية</div><div class="form-group"><label class="form-label">المبلغ (DA) *</label><input class="form-input" type="number" id="opAmount" placeholder="0.00" step="0.01" min="0"><div class="quick-amounts"><button class="quick-btn" onclick="setAmount(100)">100</button><button class="quick-btn" onclick="setAmount(200)">200</button><button class="quick-btn" onclick="setAmount(500)">500</button><button class="quick-btn" onclick="setAmount(1000)">1000</button><button class="quick-btn" onclick="setAmount(2000)">2000</button><button class="quick-btn" onclick="setAmount(5000)">5000</button></div></div><div class="form-group"><label class="form-label">ملاحظة (اختياري)</label><input class="form-input" type="text" id="opNote" placeholder="مثال: ثمن كتب..."></div><div class="btn-row"><button class="btn btn-secondary" onclick="closeModal('addOpModal')">إلغاء</button><button class="btn btn-primary" id="saveOpBtn" onclick="saveOperation()">✅ تسجيل</button></div></div></div>
 <div class="modal-overlay" id="notificationModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title">📨 إرسال إشعار للزبون</div><div class="form-group"><label class="form-label">طريقة الإرسال</label><div class="method-buttons"><button class="method-btn active" id="methodWhatsApp" onclick="selectMethod('whatsapp')">💚 واتساب</button><button class="method-btn" id="methodSMS" onclick="selectMethod('sms')">📱 SMS</button></div></div><div class="form-group"><label class="form-label">نص الرسالة</label><textarea class="form-input" id="messageText" rows="4" oninput="updatePreview()"></textarea></div><div class="message-preview" id="messagePreview"></div><div class="btn-row"><button class="btn btn-secondary" onclick="closeModal('notificationModal')">إلغاء</button><button class="btn btn-primary" onclick="sendNotification()">📤 إرسال</button></div></div></div>
-<div class="modal-overlay" id="settingsModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title">⚙️ الإعدادات</div><div class="settings-list"><div class="settings-item" onclick="exportExcel(); closeModal('settingsModal')"><div class="settings-icon">📊</div><div class="settings-info"><div class="settings-title">تصدير Excel</div><div class="settings-desc">تصدير كل بيانات الزبائن والديون</div></div><div class="settings-arrow">←</div></div><div class="settings-item" onclick="generatePDFAndSend(); closeModal('settingsModal')"><div class="settings-icon">📄</div><div class="settings-info"><div class="settings-title">تقرير PDF</div><div class="settings-desc">تصدير تقرير PDF</div></div><div class="settings-arrow">←</div></div><div class="settings-item" onclick="toggleTheme(); closeModal('settingsModal')"><div class="settings-icon" id="themeIcon">🌙</div><div class="settings-info"><div class="settings-title" id="themeLabel">تفعيل الوضع الداكن</div><div class="settings-desc">تبديل بين الوضع الفاتح والداكن</div></div><div class="settings-arrow">←</div></div><div class="settings-item" onclick="changeAppLogo()"><div class="settings-icon">🖼️</div><div class="settings-info"><div class="settings-title">تغيير شعار التطبيق</div><div class="settings-desc">اختيار صورة جديدة من المعرض</div></div><div class="settings-arrow">←</div></div><div class="settings-item" onclick="showAbout()"><div class="settings-icon">ℹ️</div><div class="settings-info"><div class="settings-title">معلومات التطبيق</div><div class="settings-desc">الإصدار 6.1 · أونلاين فقط · بحث محسّن</div></div><div class="settings-arrow">←</div></div><div class="settings-item" onclick="logoutApp(); closeModal('settingsModal')" style="border-color:var(--red);"><div class="settings-icon">🔒</div><div class="settings-info"><div class="settings-title" style="color:var(--red)">تسجيل الخروج</div><div class="settings-desc">قفل التطبيق وإظهار شاشة الدخول</div></div><div class="settings-arrow">←</div></div></div><div style="margin-top:16px"><button class="btn btn-secondary" onclick="closeModal('settingsModal')">إغلاق</button></div></div></div>
+<div class="modal-overlay" id="settingsModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title">⚙️ الإعدادات</div><div class="settings-list"><div class="settings-item" onclick="exportExcel(); closeModal('settingsModal')"><div class="settings-icon">📊</div><div class="settings-info"><div class="settings-title">تصدير Excel</div><div class="settings-desc">تصدير كل بيانات الزبائن والديون</div></div><div class="settings-arrow">←</div></div><div class="settings-item" onclick="generatePDFAndSend(); closeModal('settingsModal')"><div class="settings-icon">📄</div><div class="settings-info"><div class="settings-title">تقرير PDF</div><div class="settings-desc">تصدير تقرير PDF</div></div><div class="settings-arrow">←</div></div><div class="settings-item" onclick="toggleTheme(); closeModal('settingsModal')"><div class="settings-icon" id="themeIcon">🌙</div><div class="settings-info"><div class="settings-title" id="themeLabel">تفعيل الوضع الداكن</div><div class="settings-desc">تبديل بين الوضع الفاتح والداكن</div></div><div class="settings-arrow">←</div></div><div class="settings-item" onclick="changeAppLogo()"><div class="settings-icon">🖼️</div><div class="settings-info"><div class="settings-title">تغيير شعار التطبيق</div><div class="settings-desc">اختيار صورة جديدة من المعرض</div></div><div class="settings-arrow">←</div></div><div class="settings-item" onclick="showAbout()"><div class="settings-icon">ℹ️</div><div class="settings-info"><div class="settings-title">معلومات التطبيق</div><div class="settings-desc">الإصدار 6.2 · أونلاين فقط · بحث محسّن</div></div><div class="settings-arrow">←</div></div><div class="settings-item" onclick="logoutApp(); closeModal('settingsModal')" style="border-color:var(--red);"><div class="settings-icon">🔒</div><div class="settings-info"><div class="settings-title" style="color:var(--red)">تسجيل الخروج</div><div class="settings-desc">قفل التطبيق وإظهار شاشة الدخول</div></div><div class="settings-arrow">←</div></div></div><div style="margin-top:16px"><button class="btn btn-secondary" onclick="closeModal('settingsModal')">إغلاق</button></div></div></div>
 <div class="confirm-overlay" id="confirmOverlay"><div class="confirm-card"><h3 id="confirmTitle">⚠️ تأكيد</h3><p id="confirmMessage">هل أنت متأكد؟</p><div class="confirm-buttons"><button class="confirm-no" onclick="cancelConfirm()">إلغاء</button><button class="confirm-yes" onclick="confirmAction()">نعم</button></div></div></div>
 <div class="toast" id="toast"></div>
 
@@ -282,7 +282,13 @@ const database = firebase.database();
 // ======= STATE =======
 const MERCHANT_ID = 'konach_merchant';
 const PASSWORD = '2026';
-const PINNED_CLIENT_NAMES = ['جودي محمد الطاهر', 'يحي دادة'];
+// ======= PINNED CLIENTS =======
+// هذان الاسمان فقط يظهران دائمًا في أعلى القائمة.
+// المطابقة هنا مقصودة ومحدودة حتى لا يتم تثبيت أسماء قريبة بالخطأ.
+const PINNED_CLIENTS = [
+  { rank: 0, label: 'يحي دادة', aliases: ['يحي دادة'] },
+  { rank: 1, label: 'جودي محمدطاهر', aliases: ['جودي محمدطاهر'] }
+];
 let currentUser = { uid: MERCHANT_ID };
 let clients = [];
 let clientMap = new Map();
@@ -462,10 +468,27 @@ function normalizeArabic(text = '') {
     .trim();
 }
 function compactText(text = '') { return normalizeArabic(text).replace(/\s+/g, ''); }
+function tokenizeText(text = '') { return normalizeArabic(text).split(/\s+/).filter(Boolean); }
+function nameMatchesAlias(clientName = '', alias = '') {
+  const clientKey = compactText(clientName);
+  const aliasKey = compactText(alias);
+  if (!clientKey || !aliasKey) return false;
+
+  // مطابقة دقيقة فقط بعد تنظيف النص من التشكيل، علامات الترقيم، والمسافات.
+  // مثال: "جودي محمد طاهر" يطابق "جودي محمدطاهر"، لكن "محمد طاهر جودي" لا يطابق.
+  return clientKey === aliasKey;
+}
 function getPinnedRank(client) {
-  const nameKey = compactText(client?.name || '');
-  const idx = PINNED_CLIENT_NAMES.findIndex(name => compactText(name) === nameKey);
-  return idx === -1 ? 999 : idx;
+  const clientName = client?.name || '';
+  for (const pinned of PINNED_CLIENTS) {
+    if (pinned.aliases.some(alias => nameMatchesAlias(clientName, alias))) return pinned.rank;
+  }
+  return 999;
+}
+function getPinnedLabel(client) {
+  const clientName = client?.name || '';
+  const found = PINNED_CLIENTS.find(p => p.aliases.some(alias => nameMatchesAlias(clientName, alias)));
+  return found ? found.label : '';
 }
 function isPinnedClient(client) { return getPinnedRank(client) !== 999; }
 function clientMatchesSearch(client, query) {
@@ -498,7 +521,8 @@ function renderClients() {
   const list = $('clientsList'); const empty = $('emptyState');
   let filtered = clients.filter(c => {
     const balance = getBalance(c);
-    const matchTab = currentTab === 'all' || (currentTab === 'debt' && balance > 0) || (currentTab === 'clear' && balance <= 0);
+    const pinned = isPinnedClient(c);
+    const matchTab = currentTab === 'all' || pinned || (currentTab === 'debt' && balance > 0) || (currentTab === 'clear' && balance <= 0);
     return matchTab && clientMatchesSearch(c, searchQuery);
   });
   filtered = sortClients(filtered);
@@ -516,7 +540,7 @@ function renderClients() {
       const balanceClass = balance <= 0 ? 'zero' : (balance < 5000 ? 'small' : 'large');
       const badge = balance <= 0 ? '<span class="balance-badge paid-badge">✓ مسدّد</span>' : '<span class="balance-badge debt-badge">! دين</span>';
       const pinned = isPinnedClient(c);
-      const pinnedBadge = pinned ? '<span class="client-ops-count pinned-label">⭐ مثبت</span>' : '';
+      const pinnedBadge = pinned ? `<span class="client-ops-count pinned-label" title="${escapeHTML(getPinnedLabel(c))}">⭐ مثبت</span>` : '';
       return `<div class="client-card ${colorClass} ${pinned ? 'pinned' : ''}" onclick="openClient('${escapeHTML(c.id)}')">
         <div class="client-avatar">${escapeHTML(getInitials(c.name))}</div>
         <div class="client-info"><div class="client-name">${escapeHTML(c.name)}</div><div class="client-phone">${escapeHTML(c.phone || 'بدون هاتف')}</div>${c.note ? `<div class="client-note">${escapeHTML(c.note)}</div>` : ''}<div class="client-meta"><span class="client-ops-count">📋 ${c.operations.length} عملية</span>${pinnedBadge}</div></div>
@@ -664,7 +688,7 @@ function exportExcel() {
 async function generatePDFAndSend() {
   if (!clients.length) { showToast('⚠️ لا يوجد زبائن'); return; }
   const rows = clients.map((c,i) => { const balance = Math.max(0, getBalance(c)); return `<tr><td>${i+1}</td><td>${escapeHTML(c.name)}</td><td>${escapeHTML(c.phone || '—')}</td><td style="font-weight:700;color:${balance>0?'#ef476f':'#06d6a0'}">${balance.toFixed(2)}</td><td>${balance<=0?'✅ مسدّد':'⚠️ عليه دين'}</td></tr>`; }).join('');
-  const reportHtml = `<div style="padding:20px;font-family:Cairo,Arial;direction:rtl;background:white;color:#1e293b;"><div style="text-align:center;margin-bottom:28px;border-bottom:2px solid #4361ee;padding-bottom:16px;"><h1 style="color:#4361ee;font-size:24px;margin-bottom:4px;">📚 مكتبة بني هلال</h1><div style="font-size:11px;color:#4361ee;font-weight:700;letter-spacing:2px;">Y &amp; H</div><p style="color:#64748b;font-size:12px;margin-top:6px;">تقرير الديون — ${new Date().toLocaleDateString('ar-DZ')}</p></div><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f1f5f9;"><th>#</th><th>اسم الزبون</th><th>رقم الهاتف</th><th>الدين المتبقي (DA)</th><th>الحالة</th></tr></thead><tbody>${rows}</tbody></table><style>td,th{border:1px solid #e2e8f0;padding:8px;text-align:center} td:nth-child(2){text-align:right}</style><div style="margin-top:20px;padding:14px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;"><strong>إجمالي الديون: ${clients.reduce((s,c)=>s+Math.max(0,getBalance(c)),0).toFixed(2)} DA</strong> &nbsp;|&nbsp; عدد الزبائن: ${clients.length} &nbsp;|&nbsp; مسدّدون: ${clients.filter(c=>getBalance(c)<=0).length}</div><div style="margin-top:24px;text-align:center;font-size:11px;color:#94a3b8;">تم إنشاء هذا التقرير بواسطة نظام مكتبة بني هلال Y&amp;H · الإصدار 6.1</div></div>`;
+  const reportHtml = `<div style="padding:20px;font-family:Cairo,Arial;direction:rtl;background:white;color:#1e293b;"><div style="text-align:center;margin-bottom:28px;border-bottom:2px solid #4361ee;padding-bottom:16px;"><h1 style="color:#4361ee;font-size:24px;margin-bottom:4px;">📚 مكتبة بني هلال</h1><div style="font-size:11px;color:#4361ee;font-weight:700;letter-spacing:2px;">Y &amp; H</div><p style="color:#64748b;font-size:12px;margin-top:6px;">تقرير الديون — ${new Date().toLocaleDateString('ar-DZ')}</p></div><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f1f5f9;"><th>#</th><th>اسم الزبون</th><th>رقم الهاتف</th><th>الدين المتبقي (DA)</th><th>الحالة</th></tr></thead><tbody>${rows}</tbody></table><style>td,th{border:1px solid #e2e8f0;padding:8px;text-align:center} td:nth-child(2){text-align:right}</style><div style="margin-top:20px;padding:14px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;"><strong>إجمالي الديون: ${clients.reduce((s,c)=>s+Math.max(0,getBalance(c)),0).toFixed(2)} DA</strong> &nbsp;|&nbsp; عدد الزبائن: ${clients.length} &nbsp;|&nbsp; مسدّدون: ${clients.filter(c=>getBalance(c)<=0).length}</div><div style="margin-top:24px;text-align:center;font-size:11px;color:#94a3b8;">تم إنشاء هذا التقرير بواسطة نظام مكتبة بني هلال Y&amp;H · الإصدار 6.2</div></div>`;
   const el = document.createElement('div'); el.innerHTML = reportHtml;
   const opt = { margin:[0.5,0.5,0.5,0.5], filename:`تقرير_ديون_مكتبة_بني_هلال_${new Date().toISOString().slice(0,10)}.pdf`, image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'in',format:'a4',orientation:'portrait'} };
   try { const blob = await html2pdf().set(opt).from(el).outputPdf('blob'); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = opt.filename; a.click(); URL.revokeObjectURL(url); showToast('✅ تم تنزيل التقرير PDF'); }
